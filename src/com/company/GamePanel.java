@@ -2,10 +2,8 @@ package com.company;
 
 import javax.swing.*;
 import java.awt.*;
-import java.awt.event.KeyAdapter;
-import java.awt.event.KeyEvent;
-import java.awt.event.MouseAdapter;
-import java.awt.event.MouseEvent;
+import java.awt.event.*;
+import java.io.*;
 import java.util.Scanner;
 
 public class GamePanel extends JPanel implements Runnable {
@@ -19,6 +17,7 @@ public class GamePanel extends JPanel implements Runnable {
     UserPanel user;
     Thread v;
     int turn;
+    JButton resume;
 
     public GamePanel(){
         this.setLayout(null);
@@ -29,13 +28,41 @@ public class GamePanel extends JPanel implements Runnable {
         turn = 0;
 
         user = new UserPanel();
-        user.setBounds(20,10, 100,40);
+        user.setBounds(20,660, 330,40);
         user.setVisible(true);
 
         this.add(user);
 
         this.setFocusable(true);
 
+        user.resume.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                try {
+                    resumeGame();
+                } catch (FileNotFoundException fileNotFoundException) {
+                    fileNotFoundException.printStackTrace();
+                }
+            }
+        });
+
+        user.save.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                try {
+                    saveGame();
+                } catch (IOException ioException) {
+                    ioException.printStackTrace();
+                }
+            }
+        });
+
+        user.reset.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                reset();
+            }
+        });
 
         v = new Thread(this);
         v.start();
@@ -103,25 +130,17 @@ public class GamePanel extends JPanel implements Runnable {
                 int move = getMove();//Integer.parseInt(user.getCommand());
 
 
-                if(validMove(board,move)){
-                   board = enter(board, move, 1);
-                    if(isFull(board)){
-                        winner = false;
-                        winnerResult = 0;
-                        break;
-                    }
-                }else{
-                    while (validMove(board,move) == false){
+                if (!validMove(board, move)) {
+                    while (!validMove(board, move)) {
                         System.out.println("was not a valid move enter agin please player 1: ");
                         move = getMove();//Integer.parseInt(user.getCommand());
                     }
 
-                    board = enter(board,move,1);
-                    if(isFull(board)){
-                        winner = false;
-                        winnerResult = 0;
-                        break;
-                    }
+                }
+                board = enter(board, move, 1);
+                if(isFull(board)){
+                    winnerResult = 0;
+                    break;
                 }
 
                 repaint();
@@ -131,7 +150,7 @@ public class GamePanel extends JPanel implements Runnable {
                 }else if(checkWinner(board) == 1){
                     winnerResult = 1;
                     break;
-                }else{
+                }else if(checkWinner(board) == 2){
                     winnerResult = 2;
                     break;
                 }
@@ -144,18 +163,16 @@ public class GamePanel extends JPanel implements Runnable {
                 if(validMove(board,move)){
                     board = enter(board,move,2);
                     if(isFull(board)){
-                        winner = false;
                         winnerResult = 0;
                         break;
                     }
                 }else{
-                    while (validMove(board,move) == false){
+                    while (!validMove(board, move)){
                         System.out.println("was not a valid move enter agin please player 2: ");
                         move = getMove();//Integer.parseInt(user.getCommand());
                     }
                     board = enter(board,move,2);
                     if(isFull(board)){
-                        winner = false;
                         winnerResult = 0;
                         break;
                     }
@@ -176,23 +193,33 @@ public class GamePanel extends JPanel implements Runnable {
             }
         }
 
-        if(winnerResult == 0){
+        repaint();
+
+        System.out.println("lool  -- " + isFull(board));
+
+        if(checkWinner(board) == 0){
             turn = 3;//draw
-        }else if(winnerResult == 1){
+        }else if(checkWinner(board) == 1){
             turn = 4;//player one won
-        }else{
+        }else if(checkWinner(board) == 2){
             turn = 5;// player two won
         }
     }
 
     public static int[][] enter(int[][] a, int n, int m){
         int cout = 1;
+        boolean is = false;
         for(int i = 0; i<3; i++){
             for(int j = 0; j<3; j++){
                 if(cout == n ){
                     a[i][j] = m;
+                    is = true;
+                    break;
                 }
                 cout++;
+            }
+            if(is){
+                break;
             }
 
         }
@@ -207,8 +234,13 @@ public class GamePanel extends JPanel implements Runnable {
             for(int j = 0; j<3; j++){
                 if(cout == n && a[i][j] == 0){
                     isValid = true;
+                    break;
                 }
                 cout++;
+            }
+
+            if(isValid){
+                break;
             }
 
         }
@@ -233,7 +265,7 @@ public class GamePanel extends JPanel implements Runnable {
         for(int i = 0; i<3; i++){
             for(int j = 0; j<3; j++){
                 if(a[i][j] != 0){
-                    cout++;
+                    cout += 1;
                 }
             }
 
@@ -242,6 +274,58 @@ public class GamePanel extends JPanel implements Runnable {
         return cout == 9;
     }
 
+    public void resumeGame() throws FileNotFoundException {
+        File text = new File("src/com/company/lool.txt");
+        Scanner scnr = new Scanner(text);
+
+        int i = 0;
+        int j = 0;
+
+        int[][] b = new int[3][3];
+        while(scnr.hasNextLine()){
+            String line = scnr.nextLine();
+            Scanner in = new Scanner(line);
+            in.useDelimiter(",");
+
+            if(i == 3){
+                turn = Integer.parseInt(line);
+                break;
+            }
+
+            while(in.hasNext()){
+                String ss = in.next();
+                int s = Integer.parseInt(ss);
+                b[i][j] = s;
+                j++;
+            }
+            j = 0;
+            i++;
+        }
+
+        board = b;
+        repaint();
+    }
+
+    public void saveGame() throws IOException {
+        Writer wr = new FileWriter("src/com/company/lool.txt");
+        wr.write(String.valueOf(5)) ; // write int
+        wr.write("lool"); // write string
+
+        wr.flush();
+        wr.close();
+    }
+
+    public void reset(){
+        board = new int[][]{ {0,0,0}, {0,0,0}, {0,0,0} };
+        turn = 0;
+        repaint();
+    }
+/*
+1,2,0
+2,1,0
+0,2,1
+1
+ */
 }
 
 
