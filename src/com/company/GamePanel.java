@@ -308,8 +308,11 @@ public class GamePanel extends JPanel implements Runnable {
 
     public void saveGame() throws IOException {
         Writer wr = new FileWriter("src/com/company/lool.txt");
-        wr.write(String.valueOf(5)) ; // write int
-        wr.write("lool"); // write string
+        String s = board[0][0] + "," + board[0][1] + "," + board[0][2] + "\n";
+        s+= board[1][0] + "," + board[1][1] + "," + board[1][2] + "\n";
+        s+= board[2][0] + "," + board[2][1] + "," + board[2][2] + "\n";
+        s+= turn;
+        wr.write(s) ; // write int
 
         wr.flush();
         wr.close();
